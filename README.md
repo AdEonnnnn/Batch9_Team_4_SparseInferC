@@ -222,7 +222,7 @@ This gives a total of **six built-in unit tests**.
 
 Full program output (6 unit tests, 9 sparsity levels, `ALL CHECKS PASSED`):
 
-![Sample output](screenshots/sample_output.png)
+![Sample output](file:///C:/Users/aryaman/Downloads/Sparse%20Inference%20Benchmark%20Results.pdf)
 
 ## Correctness Verification
 
