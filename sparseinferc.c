@@ -63,17 +63,24 @@ typedef struct {
     Csr   *s[NL];     /* same weights in CSR form                       */
 } Net;
 
+/* malloc wrapper: stop with a clear message instead of crashing on NULL */
+static void *xmalloc(size_t n) {
+    void *p = malloc(n);
+    if (!p) { fprintf(stderr, "out of memory\n"); exit(1); }
+    return p;
+}
+
 /* ------------------------------------------------------------------ */
 /* Sparse format                                                       */
 /* ------------------------------------------------------------------ */
 static Csr *csr_from_dense(const float *d, int rows, int cols) {
-    Csr *m = malloc(sizeof *m);
+    Csr *m = xmalloc(sizeof *m);
     int nnz = 0;
     for (long i = 0; i < (long)rows * cols; i++) if (d[i] != 0.0f) nnz++;
     m->rows = rows; m->cols = cols; m->nnz = nnz;
-    m->vals    = malloc(sizeof(float) * (size_t)(nnz ? nnz : 1));
-    m->col_idx = malloc(sizeof(int)   * (size_t)(nnz ? nnz : 1));
-    m->row_ptr = malloc(sizeof(int)   * (size_t)(rows + 1));
+    m->vals    = xmalloc(sizeof(float) * (size_t)(nnz ? nnz : 1));
+    m->col_idx = xmalloc(sizeof(int)   * (size_t)(nnz ? nnz : 1));
+    m->row_ptr = xmalloc(sizeof(int)   * (size_t)(rows + 1));
     int k = 0;
     for (int r = 0; r < rows; r++) {
         m->row_ptr[r] = k;
@@ -156,7 +163,7 @@ static long prune_magnitude(float *w, long n, double sparsity) {
     long k = (long)floor(sparsity * (double)n + 0.5);
     if (k <= 0) return 0;
     if (k >= n) { memset(w, 0, sizeof(float) * (size_t)n); return n; }
-    float *mag = malloc(sizeof(float) * (size_t)n);
+    float *mag = xmalloc(sizeof(float) * (size_t)n);
     for (long i = 0; i < n; i++) mag[i] = fabsf(w[i]);
     qsort(mag, (size_t)n, sizeof(float), cmp_float);
     float thr = mag[k - 1];
@@ -292,12 +299,12 @@ int main(int argc, char **argv) {
     for (int l = 0; l < NL; l++) {
         long n = (long)SIZES[l + 1] * SIZES[l];
         float scale = sqrtf(2.0f / (float)SIZES[l]);
-        base_w[l] = malloc(sizeof(float) * (size_t)n);
-        base_b[l] = malloc(sizeof(float) * (size_t)SIZES[l + 1]);
+        base_w[l] = xmalloc(sizeof(float) * (size_t)n);
+        base_b[l] = xmalloc(sizeof(float) * (size_t)SIZES[l + 1]);
         for (long i = 0; i < n; i++) base_w[l][i] = frand() * scale;
         for (int i = 0; i < SIZES[l + 1]; i++) base_b[l][i] = frand() * 0.05f;
     }
-    float *X = malloc(sizeof(float) * (size_t)N_IN * SIZES[0]);
+    float *X = xmalloc(sizeof(float) * (size_t)N_IN * SIZES[0]);
     for (long i = 0; i < (long)N_IN * SIZES[0]; i++) X[i] = (frand() + 1.0f) * 0.5f;
 
     long total = 0;
@@ -320,7 +327,7 @@ int main(int argc, char **argv) {
         size_t mem_s = 0, mem_d = 0;
         for (int l = 0; l < NL; l++) {
             long n = (long)SIZES[l + 1] * SIZES[l];
-            net.w[l] = malloc(sizeof(float) * (size_t)n);
+            net.w[l] = xmalloc(sizeof(float) * (size_t)n);
             memcpy(net.w[l], base_w[l], sizeof(float) * (size_t)n);
             net.b[l] = base_b[l];
             prune_magnitude(net.w[l], n, levels[li]);
@@ -413,3 +420,4 @@ int main(int argc, char **argv) {
     free(X);
     return fails ? 1 : 0;
 }
+
